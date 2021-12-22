@@ -114,22 +114,65 @@ export default {
 		console.log('Loaded Config', this.config)
 		
 		// Add Wallet Init code here
-		
-		this.updateWhoSaidHi()
+
+		const config = { 
+			...this.config, 
+			...{
+				// creates keyStore using private key in local storage
+				// *** REQUIRES SignIn using walletConnection.requestSignIn() ***
+				keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() 
+			} 
+		};
+
+		// connect to NEAR
+		this.near = await nearAPI.connect(config);
+		// create wallet connection
+		this.walletAccount = new nearAPI.WalletConnection(this.near);
+		this.accountId = this.walletAccount.getAccountId();
+		this.contract = await this.near.loadContract(
+			this.config.contractName, {
+				viewMethods: ['whoSaidHi'], // view methods do not change state but usually return a value
+    		changeMethods: ['sayHi'], // change methods modify state
+    		sender: this.accountId, // account object to initialize and sign transactions.
+			}
+		);
+
+		this.updateWhoSaidHi();
 	},
 	methods: {
 		signedOutFlow() {
-			alert('Add code to trigger NEAR wallet login using the NEAR SDK')
+			this.walletAccount.requestSignIn(
+				// The contract name that would be authorized to be called by the user's account.
+				this.config.contractName,
+				// This is the app name. It can be anything.
+				'Who was the last person to say "Hi!"?',
+				// We can also provide URLs to redirect on success and failure.
+				// The current URL is used by default.
+			);
 		},
-		signedInFlow() {
+		async signedInFlow() {
+			this.contract.sayHi().then(updateWhoSaidHi);
+
+			setTimeout(this.updateWhoSaidHi, 1000);
 		},
 		signOut() {
+			this.walletAccount.signOut();
 		},
-		updateWhoSaidHi() {
-			// this.link_to_who_said_hi_account = 'https://explorer.testnet.near.org/accounts/' + who;
+		async updateWhoSaidHi() {
+			const who = await this.contract.whoSaidHi();
+			console.log(who);
+			this.link_to_who_said_hi_account = 'https://explorer.testnet.near.org/accounts/' + who;
+			this.who_said_hi_account = who;
 		},
 		sayHi() {
-			alert('Add code to handle signedOutFlow or signedInFlow')
+			if (!this.walletAccount.isSignedIn())
+				return this.signedOutFlow();
+
+			this.contract.sayHi()
+				.then(() => {
+					this.updateWhoSaidHi()
+				})
+				.catch(console.error)
 		},
 		openURLNewTab(url) {
 			if (url)

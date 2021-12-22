@@ -53,7 +53,7 @@ module.exports = {
 		'no-mixed-spaces-and-tabs': 0,
 		'require-config-file': 0,
 		'no-trailing-spaces': 0,
-		'semi': 0,
+		semi: 0,
 		'no-useless-escape': 0,
 		'no-implied-eval': 0
 	}

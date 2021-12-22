@@ -1,4 +1,4 @@
-const CONTRACT_NAME = 'devtest.testnet';
+const CONTRACT_NAME = 'maix.testnet';
 
 export default function getConfig (env) {
 	switch (env) {
